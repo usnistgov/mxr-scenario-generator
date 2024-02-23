@@ -1,0 +1,16 @@
+ParameterName	ParameterValue
+environmentFileName	operatingRoom.amf
+indoorSwitch	1
+numberOfTimeDivisions	595
+referencePoint	[0,0,0]
+selectPlanesByDist	inf
+switchDiffuseComponent	1
+switchQDModel	nistMeasurements
+totalNumberOfReflections	1
+totalTimeDuration	1
+switchSaveVisualizerFiles	1
+carrierFrequency	60e9
+qdFilesFloatPrecision	6
+useOptimizedOutputToFile	1
+outputFormat	both
+materialLibraryPath	material_libraries/materialLibraryLectureRoom.csv
