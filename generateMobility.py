@@ -49,13 +49,13 @@ textFolder = "Input"
 scenariosFolder = "surgeryScenarios"
 patientLimb = [-3.03,-3.04,0.99]
 screenSurgeon = [-3.81,-0.09,1.66]
-focus_interval = 100
-rotation_steps = 10
-focus_duration = 30
+focusInterval = 100
+rotationSteps = 10
+focusDuration = 30
 staHeight = 1.75
 
 # Initial AP coordinates for each scenario
-initial_ap_coordinates = [
+initialApCoordinates = [
     [-5.75, -0.01, 2.7],
     [-5.75, -2.73, 2.7],
     [-5.75, -5.47, 2.7],
@@ -69,7 +69,7 @@ initial_ap_coordinates = [
 ]
 
 # Normalize the angle difference to be within [-π, π]
-def normalize_angle_difference(diff):
+def normalizeAngleDifference(diff):
     while diff > math.pi:
         diff -= 2 * math.pi
     while diff < -math.pi:
@@ -77,18 +77,18 @@ def normalize_angle_difference(diff):
     return diff
 
 # Calculate the rotation between two points
-def calculate_rotation(node_a, node_b):
-    vector_ab = [node_a[0] - node_b[0], node_a[1] -
-                 node_b[1], node_a[2] - node_b[2]]
+def calculateRotation(nodeA, nodeB):
+    vectorAB = [nodeA[0] - nodeB[0], nodeA[1] -
+                 nodeB[1], nodeA[2] - nodeB[2]]
 
     # Calculate the length of the vector from Node B to Node A
-    dist_ab = math.sqrt(vector_ab[0]**2 + vector_ab[1]**2 + vector_ab[2]**2)
+    distAB = math.sqrt(vectorAB[0]**2 + vectorAB[1]**2 + vectorAB[2]**2)
 
     # Calculate the yaw (rotation around the z-axis), pitch (rotation around the x-axis), and roll (rotation around the y-axis)
-    yaw = math.atan2(vector_ab[1], vector_ab[0])
-    pitch = math.atan2(-vector_ab[2], dist_ab)
-    roll = math.atan2(math.sin(yaw)*vector_ab[0] - math.cos(
-        yaw)*vector_ab[1], -math.sin(yaw)*vector_ab[1] - math.cos(yaw)*vector_ab[0])
+    yaw = math.atan2(vectorAB[1], vectorAB[0])
+    pitch = math.atan2(-vectorAB[2], distAB)
+    roll = math.atan2(math.sin(yaw)*vectorAB[0] - math.cos(
+        yaw)*vectorAB[1], -math.sin(yaw)*vectorAB[1] - math.cos(yaw)*vectorAB[0])
     return (yaw, 0, pitch)
 
 
@@ -119,35 +119,35 @@ class MovingSTA:
 for idScenario in range(numberOfScenarioToGenerate):
 
     # AP1 = AccessPoint(-5.75,-2.85,2.70,0, 0, 0)
-    xAp,yAp,zAp = initial_ap_coordinates[idScenario]
+    xAp,yAp,zAp = initialApCoordinates[idScenario]
     AP1 = AccessPoint( xAp,yAp,zAp ,0, 0, 0)
     
-    rotation_phase = 0  # 0: Focusing on patientLimb, 1: Transition, 2: Focusing on screenSurgeon
+    rotationPhase = 0  # 0: Focusing on patientLimb, 1: Transition, 2: Focusing on screenSurgeon
 
-    stationary_stas = []
+    stationaryStas = []
   
 
     # Generate coordinates for moving STAs
-    moving_stas = []
+    movingStas = []
     staAllCoordinates = []
     staAllRotations = []
     # keep track of STAs for each AP
-    ap_stas = {AP1: []}
+    apStas = {AP1: []}
     listAp = [AP1]
     # keep track of STA counts for each AP
-    ap_stas_counts = {AP1: 0}
+    apStasCounts = {AP1: 0}
     for i in range(nbMobileSta):   
         x = -2.75
         y = -2.5
         z = staHeight
         ap = 0
-        yaw, pitch, roll = calculate_rotation(patientLimb, [x, y, z])
+        yaw, pitch, roll = calculateRotation(patientLimb, [x, y, z])
         sta = MovingSTA(x, y, z, yaw, pitch, roll, ap)
 
         # Add STA to list of moving STAs
-        sta_itself = []
-        sta_itself.append(sta)
-        moving_stas.append(sta_itself)
+        staItself = []
+        staItself.append(sta)
+        movingStas.append(staItself)
 
         aStaCoordinate = []
         aStaCoordinate.append([x, y, z])
@@ -159,47 +159,47 @@ for idScenario in range(numberOfScenarioToGenerate):
 
     for i in range(nbTimeStep-1):
         for idSta in range(nbMobileSta):
-            new_x = moving_stas[idSta][i].x + random.uniform(-0.01, 0.01)
-        new_x = moving_stas[idSta][i].x + random.uniform(-0.01, 0.01)
-        new_y = moving_stas[idSta][i].y + random.uniform(-0.01, 0.01)
+            newX = movingStas[idSta][i].x + random.uniform(-0.01, 0.01)
+        newX = movingStas[idSta][i].x + random.uniform(-0.01, 0.01)
+        newY = movingStas[idSta][i].y + random.uniform(-0.01, 0.01)
         
-        cycle_pos = i % (focus_interval + 2*rotation_steps + focus_duration)
+        cyclePos = i % (focusInterval + 2*rotationSteps + focusDuration)
 
-        if 0 <= cycle_pos < focus_interval:
+        if 0 <= cyclePos < focusInterval:
             # Focusing on patientLimb
-            desired_yaw, desired_pitch, desired_roll = calculate_rotation(patientLimb, [new_x, new_y, z])
+            desiredYaw, desiredPitch, desiredRoll = calculateRotation(patientLimb, [newX, newY, z])
 
-        elif focus_interval <= cycle_pos < focus_interval + rotation_steps:
+        elif focusInterval <= cyclePos < focusInterval + rotationSteps:
             # Transition to screenSurgeon
-            start_yaw, _, _ = calculate_rotation(patientLimb, [new_x, new_y, z])
-            end_yaw, end_pitch, end_roll = calculate_rotation(screenSurgeon, [new_x, new_y, z])
-            alpha = (cycle_pos - focus_interval) / rotation_steps
-            yaw_diff = normalize_angle_difference(end_yaw - start_yaw)
-            desired_yaw = start_yaw + alpha * yaw_diff
-            desired_pitch = (1 - alpha) * moving_stas[idSta][i].pitch + alpha * end_pitch
-            desired_roll = (1 - alpha) * moving_stas[idSta][i].roll + alpha * end_roll
+            startYaw, _, _ = calculateRotation(patientLimb, [newX, newY, z])
+            endYaw, endPitch, endRoll = calculateRotation(screenSurgeon, [newX, newY, z])
+            alpha = (cyclePos - focusInterval) / rotationSteps
+            yaw_diff = normalizeAngleDifference(endYaw - startYaw)
+            desiredYaw = startYaw + alpha * yaw_diff
+            desiredPitch = (1 - alpha) * movingStas[idSta][i].pitch + alpha * endPitch
+            desiredRoll = (1 - alpha) * movingStas[idSta][i].roll + alpha * endRoll
 
-        elif focus_interval + rotation_steps <= cycle_pos < focus_interval + rotation_steps + focus_duration:
+        elif focusInterval + rotationSteps <= cyclePos < focusInterval + rotationSteps + focusDuration:
             # Focusing on screenSurgeon
-            desired_yaw, desired_pitch, desired_roll = calculate_rotation(screenSurgeon, [new_x, new_y, z])
+            desiredYaw, desiredPitch, desiredRoll = calculateRotation(screenSurgeon, [newX, newY, z])
 
         else:
             # Transition back to patientLimb
-            start_yaw, _, _ = calculate_rotation(screenSurgeon, [new_x, new_y, z])
-            end_yaw, end_pitch, end_roll = calculate_rotation(patientLimb, [new_x, new_y, z])
-            alpha = (cycle_pos - focus_interval - rotation_steps - focus_duration) / rotation_steps
-            yaw_diff = normalize_angle_difference(end_yaw - start_yaw)
-            desired_yaw = start_yaw + alpha * yaw_diff
-            desired_pitch = (1 - alpha) * moving_stas[idSta][i].pitch + alpha * end_pitch
-            desired_roll = (1 - alpha) * moving_stas[idSta][i].roll + alpha * end_roll
+            startYaw, _, _ = calculateRotation(screenSurgeon, [newX, newY, z])
+            endYaw, endPitch, endRoll = calculateRotation(patientLimb, [newX, newY, z])
+            alpha = (cyclePos - focusInterval - rotationSteps - focusDuration) / rotationSteps
+            yaw_diff = normalizeAngleDifference(endYaw - startYaw)
+            desiredYaw = startYaw + alpha * yaw_diff
+            desiredPitch = (1 - alpha) * movingStas[idSta][i].pitch + alpha * endPitch
+            desiredRoll = (1 - alpha) * movingStas[idSta][i].roll + alpha * endRoll
 
-        apId = moving_stas[idSta][i].ap
-        newPos = MovingSTA(new_x, new_y, staHeight, desired_yaw, desired_pitch, desired_roll, apId)
-        newPos.vx = moving_stas[idSta][i].vx
-        newPos.vy = moving_stas[idSta][i].vy
-        moving_stas[idSta].append(newPos)
-        staAllCoordinates[idSta].append([new_x, new_y, staHeight])
-        staAllRotations[idSta].append([desired_yaw, desired_pitch, desired_roll])
+        apId = movingStas[idSta][i].ap
+        newPos = MovingSTA(newX, newY, staHeight, desiredYaw, desiredPitch, desiredRoll, apId)
+        newPos.vx = movingStas[idSta][i].vx
+        newPos.vy = movingStas[idSta][i].vy
+        movingStas[idSta].append(newPos)
+        staAllCoordinates[idSta].append([newX, newY, staHeight])
+        staAllRotations[idSta].append([desiredYaw, desiredPitch, desiredRoll])
 
 
 
@@ -226,7 +226,7 @@ for idScenario in range(numberOfScenarioToGenerate):
  
     with open(nodePositionFile, "w") as f:
         idNode = 0
-        for ap in (ap_stas):
+        for ap in (apStas):
            
             coord = np.tile([ap.x, ap.y, ap.z], (nbTimeStep, 1)).tolist()
             rot = np.tile([ap.yaw, ap.roll, ap.pitch],
@@ -293,7 +293,7 @@ for idScenario in range(numberOfScenarioToGenerate):
     # Write the data to the file
     with open(paaPositionFile, "w") as f:
         idNode = 0
-        for ap in (ap_stas):
+        for ap in (apStas):
             # Handle NodePosition.json
             coord = np.tile([ap.x, ap.y, ap.z], (nbTimeStep, 1)).tolist()
             rot = np.tile([ap.yaw, ap.roll, ap.pitch],
@@ -329,7 +329,7 @@ for idScenario in range(numberOfScenarioToGenerate):
     baselineFolder = "baselineScenario" 
     inputFolder = os.path.join(scenarioFolder, textFolder)
     for filename in os.listdir(baselineFolder):
-        source_file = os.path.join(baselineFolder, filename)
-        destination_file = os.path.join(inputFolder, filename)
-        shutil.copy(source_file, destination_file)
+        sourceFile = os.path.join(baselineFolder, filename)
+        destinationFile = os.path.join(inputFolder, filename)
+        shutil.copy(sourceFile, destinationFile)
 
